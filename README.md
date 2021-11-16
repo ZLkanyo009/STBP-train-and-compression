@@ -55,7 +55,7 @@ conv_s = tdLayer(conv, bn)
 python main.py ResNet18 --dataset CIFAR10
 
 # training with DDP:
-python -m torch.distributed.launch example.py ResNet18 --local_rank 0 --dataset CIFAR10 --p DDP
+python -m torch.distributed.launch main.py ResNet18 --local_rank 0 --dataset CIFAR10 --p DDP
 
 # You can manually config the training with: 
 python main.py ResNet18 --resume --lr 0.01
@@ -68,12 +68,19 @@ python main.py ResNet18 --resume --lr 0.01
 python main.py ResNet18 --dataset CIFAR10 -q
 
 # training with DDP:
-python -m torch.distributed.launch example.py ResNet18 --local_rank 0 --dataset CIFAR10 -q --p DDP
+python -m torch.distributed.launch main.py ResNet18 --local_rank 0 --dataset CIFAR10 -q --p DDP
 
 # You can manually config the training with: 
 python main.py ResNet18 -q --resume --bit 4 --lr 0.01
 
 ```
+
+## Accuracy
+| Model            | Acc.(fp32) | Acc.(8 bit quantize) |
+| ---------------- | ---------- | -------------------- |
+| MNISTNet         | 97.96%     | 97.57%               |
+| ResNet18         | 84.40%     | 84.23%               |
+
 ## About STBP
 
 - [Zheng, H., Wu, Y., Deng, L., Hu, Y., & Li, G. (2020). Going Deeper With Directly-Trained Larger Spiking Neural Networks. *arXiv preprint arXiv:2011.05280*.](https://arxiv.org/pdf/2011.05280)

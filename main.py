@@ -14,7 +14,6 @@ from dataset import NMNIST
 from utils import choose_model
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 from tensorboardX import SummaryWriter
 
