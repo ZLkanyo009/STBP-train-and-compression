@@ -24,8 +24,8 @@ class SpikeAct(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input):
         ctx.save_for_backward(input)
-        # if input = u > Vth then output = 1
-        output = torch.gt(input, Vth) 
+        # if input = u - Vth > 0 then output = 1
+        output = torch.gt(input, 0) 
         return output.float()
 
     @staticmethod
