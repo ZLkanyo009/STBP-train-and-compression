@@ -14,6 +14,7 @@ from dataset import NMNIST
 from utils import choose_model
 
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "2, 3"
 
 from tensorboardX import SummaryWriter
 
@@ -65,7 +66,7 @@ def train(args, model, device, train_loader, optimizer, epoch, writer):
         data, target = data.to(device), target.to(device)
 
         # necessary for general dataset: broadcast input
-        data, _ = torch.broadcast_tensors(data, torch.zeros((steps,) + data.shape)) 
+        data, _ = torch.broadcast_tensors(data, torch.zeros((args.timestep,) + data.shape)) 
         data = data.permute(1, 2, 3, 4, 0)
 
         output = model(data)
@@ -83,7 +84,7 @@ def train(args, model, device, train_loader, optimizer, epoch, writer):
 
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)],  Loss: {:.6f},  Acc: {}/{} ({:.2f}%)'.format(
-                epoch, batch_idx * len(data / steps), len(train_loader.dataset),
+                epoch, batch_idx * len(data / args.timestep), len(train_loader.dataset),
                        100. * batch_idx / len(train_loader), loss.item(),
                        correct, total, 100. * correct / total))
             if args.loss_writer:
@@ -100,7 +101,7 @@ def test(args, model, device, test_loader, epoch, writer):
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
 
-            data, _ = torch.broadcast_tensors(data, torch.zeros((steps,) + data.shape))
+            data, _ = torch.broadcast_tensors(data, torch.zeros((args.timestep,) + data.shape))
             data = data.permute(1, 2, 3, 4, 0)
 
             output = model(data)
@@ -185,7 +186,7 @@ def main():
     
     parser.add_argument('--timestep', '-t', type=int, default=2,
                         help='parameter timestep of LIF neuron')
-    parser.add_argument('--Vth', '-v', type=int, default=0.2,
+    parser.add_argument('--Vth', '-v', type=int, default=0.4,
                         help='parameter Vth of LIF neuron')
     parser.add_argument('--tau', '-ta', type=int, default=0.25,
                         help='parameter leaky tau of LIF neuron')
@@ -204,6 +205,7 @@ def main():
     args = parser.parse_args()
 
     config_snn_param(args)
+    #print(get_snn_param())
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -278,7 +280,6 @@ def main():
         # Load checkpoint.
         print('==> Resuming from checkpoint..')
         assert os.path.isdir('ckpt'), 'Error: no checkpoint directory found!'
-        #checkpoint = torch.load("./ckpt/"+ args.dataset + "/"+ args.model +".pth")
         checkpoint = torch.load('./ckpt/' + args.model + '_ckpt.pth')
         model.load_state_dict(checkpoint['model'])
         if not args.quantize:
@@ -287,7 +288,7 @@ def main():
     
     if device == 'cuda' and torch.cuda.device_count() > 1 and args.parallel == 'DDP':
         torch.cuda.set_device(args.local_rank)
-        torch.distributed.init_process_group(backend='nccl', init_method='tcp://localhost:23456', rank=0, world_size=1)
+        torch.distributed.init_process_group(backend='nccl', rank=0, world_size=1)
         model = DDP(model, find_unused_parameters=True)
     
     if args.quantize:
@@ -302,7 +303,7 @@ def main():
     for epoch in range(start_epoch, start_epoch + args.epochs):
         train(args, model, device, train_loader, optimizer, epoch, writer)
         test(args, model, device, test_loader, epoch, writer)
-        weightsdistribute(model)
+        #weightsdistribute(model)
 
     if args.loss_writer:
         writer.close()

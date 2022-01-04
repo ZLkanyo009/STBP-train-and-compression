@@ -3,19 +3,20 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-steps = 2
-dt = 5
-simwin = dt * steps
-a = 0.25
+steps = 0   # 时间步 timesteps(ticks)
+Vth = 0     # 阈值电压 V_threshold
+tau = 0     # 漏电常熟 tau
 aa = 0.5    # 梯度近似项 
-Vth = 0.2   # 阈值电压 V_threshold
-tau = 0.25  # 漏电常熟 tau
+
 
 def config_snn_param(args):
     global steps, Vth, tau
     steps = args.timestep
     Vth = args.Vth
     tau = args.tau
+
+def get_snn_param():
+    return steps, Vth, tau
 
 class SpikeAct(torch.autograd.Function):
     """ 定义脉冲激活函数，并根据论文公式进行梯度的近似。
@@ -25,7 +26,7 @@ class SpikeAct(torch.autograd.Function):
     def forward(ctx, input):
         ctx.save_for_backward(input)
         # if input = u - Vth > 0 then output = 1
-        output = torch.gt(input, 0) 
+        output = torch.gt(input, Vth) 
         return output.float()
 
     @staticmethod
@@ -42,7 +43,7 @@ spikeAct = SpikeAct.apply
 
 def state_update(u_t_n1, o_t_n1, W_mul_o_t1_n):
     u_t1_n1 = tau * u_t_n1 * (1 - o_t_n1) + W_mul_o_t1_n
-    o_t1_n1 = spikeAct(u_t1_n1 - Vth)
+    o_t1_n1 = spikeAct(u_t1_n1)
     return u_t1_n1, o_t1_n1
 
 

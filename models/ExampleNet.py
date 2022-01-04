@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .layers import *
+from .layers import tdBatchNorm, LIFSpike, tdLayer, get_snn_param
 import torch.nn.functional as F
 
 class NMNISTNet(nn.Module):  # Example net for N-MNIST
@@ -21,6 +21,7 @@ class NMNISTNet(nn.Module):  # Example net for N-MNIST
         self.fc2_s = tdLayer(self.fc2)
 
         self.spike = LIFSpike()
+        self.steps, _, _ = get_snn_param()
     
     def forward(self, x):
         x = self.conv1_s(x)
@@ -36,7 +37,7 @@ class NMNISTNet(nn.Module):  # Example net for N-MNIST
         x = self.spike(x)
         x = self.fc2_s(x)
         x = self.spike(x)
-        out = torch.sum(x, dim=2) / steps  # [N, neurons, steps]
+        out = torch.sum(x, dim=2) / self.steps  # [N, neurons, steps]
         return out
 
 
@@ -59,6 +60,7 @@ class MNISTNet(nn.Module):  # Example net for MNIST
         self.fc2_s = tdLayer(self.fc2)
 
         self.spike = LIFSpike()
+        self.steps, _, _ = get_snn_param()
         
     def forward(self, x):
         x = self.conv1_s(x)
@@ -74,7 +76,7 @@ class MNISTNet(nn.Module):  # Example net for MNIST
         x = self.spike(x)
         x = self.fc2_s(x)
         x = self.spike(x)
-        out = torch.sum(x, dim=2) / steps  # [N, neurons, steps]
+        out = torch.sum(x, dim=2) / self.steps  # [N, neurons, steps]
         return out
 
 
@@ -111,6 +113,7 @@ class CifarNet(nn.Module):  # Example net for CIFAR10
         self.fc3_s = tdLayer(self.fc3)
 
         self.spike = LIFSpike()
+        self.steps, _, _ = get_snn_param()
 
     def forward(self, x):
         x = self.conv0_s(x)
@@ -134,5 +137,5 @@ class CifarNet(nn.Module):  # Example net for CIFAR10
         x = self.spike(x)
         x = self.fc3_s(x)
         x = self.spike(x)
-        out = torch.sum(x, dim=2) / steps  # [N, neurons, steps]
+        out = torch.sum(x, dim=2) / self.steps  # [N, neurons, steps]
         return out

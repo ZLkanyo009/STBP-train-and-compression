@@ -9,6 +9,8 @@ def choose_model(args):
         else:
             classes = 10
         return ResNet18(num_classes=classes)
+    if args.model == "VGG19":
+        return vgg19()
     if args.model == "NMNISTNet":
         return NMNISTNet()
     if args.model == "MNISTNet":

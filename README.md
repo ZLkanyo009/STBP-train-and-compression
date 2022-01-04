@@ -76,9 +76,11 @@ python main.py ResNet18 -q --resume --bit 4 --lr 0.01
 ```
 
 ## Accuracy
+All SNN run in timesteps = 2.
 | Model            | Acc.(fp32) | Acc.(8 bit quantize) | Acc.(4 bit quantize) |
 | ---------------- | ---------- | -------------------- | -------------------- |
 | MNISTNet         | 97.96%     | 97.57%               | 97.56%               |
+| ResNet18         | 84.40%     | 84.23%               | 83.61%               |
 | ResNet18         | 84.40%     | 84.23%               | 83.61%               |
 
 ## About STBP

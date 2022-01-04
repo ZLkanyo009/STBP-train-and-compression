@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from .layers import *
+from .layers import tdBatchNorm, LIFSpike, tdLayer, get_snn_param
 import torch.nn.functional as F
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
@@ -88,7 +88,9 @@ class ResNet(nn.Module):
         self.fc1_s = tdLayer(self.fc1)
         self.fc2 = nn.Linear(256, 10)
         self.fc2_s = tdLayer(self.fc2)
+
         self.spike = LIFSpike()
+        self.steps, _, _ = get_snn_param()
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -146,7 +148,7 @@ class ResNet(nn.Module):
         x = self.spike(x)
         x = self.fc2_s(x)
         x = self.spike(x)
-        out = torch.sum(x, dim=2) / steps
+        out = torch.sum(x, dim=2) / self.steps
         return out
 
     def forward(self, x):

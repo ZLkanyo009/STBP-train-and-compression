@@ -1,0 +1,9 @@
+/data/
+/__pycache__/
+/ckpt/
+/models/__pycache__/
+mnist.sh
+resnet.sh
+resnet
+vgg19.sh
+vgg19
