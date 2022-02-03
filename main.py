@@ -39,16 +39,59 @@ def init_quantize_net(net):
     for name,m in net.named_modules():
         if isinstance(m,nn.Conv2d) or isinstance(m,nn.Linear):
             quantized_layers.append(m)
+            m.weight.weight_float = m.weight.data.clone()
 
 def quantize_layers(bitwidth,rescale=True):
     for i, layer in enumerate(quantized_layers):
         with torch.no_grad():
-            quantized_w, scale_w=quantize_tensor(layer.weight,bitwidth,False)
+            quantized_w, scale_w=quantize_tensor(layer.weight.weight_float,bitwidth,False)
             layer.weight[...]= quantized_w/scale_w if rescale else quantized_w
 
-            if layer.bias != None:
-                quantized_b, scale_b=quantize_tensor(layer.bias,bitwidth,False)
-                layer.bias[...]= quantized_b/scale_b if rescale else quantized_b
+class QuantSGD(torch.optim.SGD):
+    """
+    refactor torch.optim.SGD.step()
+    For supporting the STE(Straight Through Estimator)
+    """
+
+    def step(self, closure=None):
+        loss = None
+        if closure is not None:
+            loss = closure()
+
+        for group in self.param_groups:
+            weight_decay = group['weight_decay']
+            momentum = group['momentum']
+            dampening = group['dampening']
+            nesterov = group['nesterov']
+
+            for p in group['params']:
+                if hasattr(p, 'weight_float'):
+                    weight_data = p.weight_float
+                else:
+                    weight_data = p.data
+
+                if p.grad is None:
+                    continue
+                # STE approximate function
+                d_p = p.grad.data
+
+                if weight_decay != 0:
+                    # TODO: Explore the weight_decay
+                    d_p.add_(weight_decay, weight_data)
+                if momentum != 0:
+                    param_state = self.state[p]
+                    if 'momentum_buffer' not in param_state:
+                        buf = param_state['momentum_buffer'] = torch.clone(d_p).detach()
+                    else:
+                        buf = param_state['momentum_buffer']
+                        buf.mul_(momentum).add_(1 - dampening, d_p)
+                    if nesterov:
+                        d_p = d_p.add(momentum, buf)
+                    else:
+                        d_p = buf
+                weight_data.add_(-group['lr'], d_p)
+
+        return loss
 
 def weightsdistribute(model):
     print("================show every layer's weights distribute================")
@@ -297,7 +340,7 @@ def main():
         quantize_layers(args.bit)
         
     # assert False
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = QuantSGD(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=200)
 
     for epoch in range(start_epoch, start_epoch + args.epochs):
